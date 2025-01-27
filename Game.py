@@ -1,8 +1,8 @@
 '''
 ================================================================
-Copyright (c) 2025 Francesco Maresca
+Copyright (c) 2025 Francesco Maresca @programmerhelloworld
 
-Miner Cave Alpha Version (0.01)
+Miner Cave Alpha Version (0.02)
 
 ================================================================
 '''
@@ -19,25 +19,32 @@ from PyQt5.QtWidgets import QApplication, QFileDialog
 pygame.mixer.init()
 channel_index = 0
 
+# Game version
+version = 0.02
+
 def play_sound(sound, increase):
     global channel_index
     pygame.mixer.Channel(channel_index).play(pygame.mixer.Sound(sound))
     if increase:
         channel_index += 1
 
+play_sound("miscellaneous/music.mp3", True)
 # Initialize game
 game = Ursina(
     title="Miner Cave",
     borderless=False,
-    size=(800, 600),
+    #size=(800, 600),
     vsync=False,
     use_ingame_console=False,
     fullscreen=False,
     fps=True
 )
 
+# Quick settings
 development_mode = False
-play_sound("miscellaneous/music.mp3", True)
+
+pauseText = Text("Game paused.\n Press F2 again to unpause it.", position=(-0.45, 0.1, 0), scale=3, #color = color.black, 
+                 visible = False)
 
 # Skybox
 Sky(color=color.blue)
@@ -92,6 +99,21 @@ def save_world():
         except Exception as e:
             print(f"Error saving world: {e}")
 
+def getHeight(): # Added this function in order to fix the falling glitch when loading world, which gets a correct height where the player can spawn
+    for x in range(-world_size, world_size):
+        for z in range(-world_size, world_size):
+            height = int(noise([x / 10, z / 10]) * 5)
+    return height
+plH = getHeight()
+
+def generate_terrain():
+    for x in range(-world_size, world_size):
+        for z in range(-world_size, world_size):
+            height = int(noise([x / 10, z / 10]) * 5)
+            add_block((x, height, z), "grass")
+            add_block((x, height-1, z), "dirt")
+            add_block((x, height-2, z), "stone")
+            
 def load_world():
     app = QApplication(sys.argv)
     options = QFileDialog.Options()
@@ -115,28 +137,13 @@ def load_world():
                     position = tuple(block_data["position"])
                     block_type = block_data["block_type"]
                     add_block(position, block_type)
+                player.position = (0, plH, 0) # If removed, when loading a new world collision will bug and player will fall
             print(f"World loaded from {file_path}!")
         except Exception as e:
             print(f"Error loading world: {e}")
 
-def generate_terrain():
-    for x in range(-world_size, world_size):
-        for z in range(-world_size, world_size):
-            height = int(noise([x / 10, z / 10]) * 5)
-            for y in range(0, height + 1):
-                if y == height:
-                    add_block((x, y, z), "grass")
-                else:
-                    if random.random() > 0.8:
-                        continue
-                    else:
-                        add_block((x, y, z), "stone")
 
-            for y in range(0, height - 1):
-                if random.random() < 0.3:
-                    continue
-                else:
-                    add_block((x, y, z), "stone")
+                
 
 def add_block(position, block_type):
     if block_type in block_textures:
@@ -156,9 +163,10 @@ class Block(Entity):
 
 player = FirstPersonController(
     mouse_sensitivity=Vec2(100, 100),
-    position=(0, 5, 0)
+    position=(0, plH+2, 0)  # Adding two blocks height in order to be sure that spawns on air and not inside blocks (colliding bug needs to be fixed ASAP)
 )
 
+# Mini block 
 mini_block = Entity(
     parent=camera,
     model="cube",
@@ -168,6 +176,7 @@ mini_block = Entity(
     rotation=(-15, -30, -5),
 )
 
+# Block bar
 bar_position = Vec3(0, -0.42, 0)
 block_bar = []
 num_blocks = len(block_types)
@@ -184,11 +193,13 @@ for i, block_type in enumerate(block_types):
         on_click=lambda i=i: update_selected_block(i)
     ))
 
+# Update of selected block -> mini block texture
 def update_selected_block(index):
     global selected_block_index
     selected_block_index = index
     mini_block.texture = block_textures[block_types[selected_block_index]]
 
+# Input keys
 def input(key):
     global selected_block_index
     if key == 'u':
@@ -196,6 +207,15 @@ def input(key):
     elif key == 'g':
         player.position = (1, 12, 1)
         load_world()
+    elif key == 'f2': # Basically freezes the game, thinking of including a real pause menu someday
+        if (player.enabled == True):
+            player.enabled = False
+            pauseText.visible = True
+        else:
+            player.enabled = True
+            pauseText.visible = False
+    elif key == 'f3':
+            pygame.mixer.stop
     elif key == 'right mouse down':
         hit_info = raycast(camera.world_position, camera.forward, distance=10)
         if hit_info.hit:
@@ -212,7 +232,7 @@ def update_mini_block():
 
 generate_terrain()
 
-Text("Francesco Maresca's Miner Cave Alpha Version", position=(-0.65, 0.48), scale=1)
+Text(f"Francesco Maresca's Miner Cave Alpha Version ({version})", position=(-0.65, 0.48), scale=1)
 
 if development_mode:  
     camera.clip_plane_far = 10
