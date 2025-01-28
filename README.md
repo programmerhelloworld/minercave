@@ -62,8 +62,8 @@ pip install ursina pygame perlin-noise PyQt5 numpy noise
 - **U**: Save the world
 - **G**: Load a saved world
 
-### Developer Tools
-- **Escape**: Toggle cursor lock/unlock
+### Useful keys
+- **F2**: Toggle cursor lock/unlock
 
 ## File Structure
 - `Game.py`: The main script to run the game.
