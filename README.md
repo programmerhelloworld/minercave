@@ -3,6 +3,7 @@
 Miner Cave is an immersive 3D sandbox game built using the **Ursina Engine**. Players can explore, build, and save their worlds while enjoying dynamic terrain generation and custom gameplay mechanics. This project is in its alpha stage and is a work in progress.
 
 ![Miner Cave Screenshot](https://github.com/user-attachments/assets/1127ee88-1e82-4b69-a0e5-5900d3e9fa88)
+![Miner Cave Logo](https://github.com/user-attachments/assets/2c813844-00ef-425d-a2dd-81f5801fb44c)
 
 
 ## Features
