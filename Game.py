@@ -2,12 +2,13 @@
 ================================================================
 Copyright (c) 2025 Francesco Maresca @programmerhelloworld
 
-Miner Cave Alpha Version (0.02)
+Miner Cave Alpha Version (0.03)
 
 ================================================================
 '''
 from ursina import *
 from ursina.prefabs.first_person_controller import FirstPersonController
+from ursina.prefabs.input_field import InputField
 from perlin_noise import PerlinNoise
 import pygame
 import random
@@ -15,13 +16,13 @@ import json
 import sys
 from PyQt5.QtWidgets import QApplication, QFileDialog
 
-# Audio setup
+# Audio setups
 pygame.mixer.init()
 channel_index = 0
 
 # Game version
-version = 0.02
-
+version = 0.03
+ 
 def play_sound(sound, increase):
     global channel_index
     pygame.mixer.Channel(channel_index).play(pygame.mixer.Sound(sound))
@@ -40,14 +41,15 @@ game = Ursina(
     fps=True
 )
 
+
 # Quick settings
 development_mode = False
 
 pauseText = Text("Game paused.\n Press F2 again to unpause it.", position=(-0.45, 0.1, 0), scale=3, #color = color.black, 
                  visible = False)
 
-# Skybox
-Sky(color=color.blue)
+# Skyboxs
+skybox = Sky(textures="miscellanoeus/sky.jpg")
 
 # Game variables
 block_textures = {
@@ -142,7 +144,7 @@ def load_world():
         except Exception as e:
             print(f"Error loading world: {e}")
 
-
+#camera.clip_plane_far = 10
                 
 
 def add_block(position, block_type):
@@ -155,13 +157,14 @@ class Block(Entity):
             position=position,
             model="cube",
             texture=block_textures.get(block_type),
-            collider="box" if block_type != "water" else "trigger",
+            collider="box",
             scale=1,
             origin_y=-0.5
         )
         self.block_type = block_type
 
 player = FirstPersonController(
+    name = "Player",
     mouse_sensitivity=Vec2(100, 100),
     position=(0, plH+2, 0)  # Adding two blocks height in order to be sure that spawns on air and not inside blocks (colliding bug needs to be fixed ASAP)
 )
@@ -176,22 +179,10 @@ mini_block = Entity(
     rotation=(-15, -30, -5),
 )
 
-# Block bar
-bar_position = Vec3(0, -0.42, 0)
-block_bar = []
-num_blocks = len(block_types)
-bar_width = num_blocks * 0.12
-start_position_x = -bar_width / 2
+def update():
+    if time.time() % 0.1 < 0.05:
+        pass
 
-for i, block_type in enumerate(block_types):
-    block_bar.append(Entity(
-        parent=camera.ui,
-        model="quad",
-        texture=block_textures[block_type],
-        scale=(0.1, 0.1),
-        position=(start_position_x + (i * 0.12), bar_position.y),
-        on_click=lambda i=i: update_selected_block(i)
-    ))
 
 # Update of selected block -> mini block texture
 def update_selected_block(index):
@@ -216,13 +207,14 @@ def input(key):
             pauseText.visible = False
     elif key == 'f3':
             pygame.mixer.stop
-    elif key == 'right mouse down':
+    elif key == 'right mouse down' and menu_mode == False:
         hit_info = raycast(camera.world_position, camera.forward, distance=10)
         if hit_info.hit:
             add_block(hit_info.entity.position + hit_info.normal, block_types[selected_block_index])
-    elif key == 'left mouse down' and mouse.hovered_entity:
+    elif key == 'left mouse down' and mouse.hovered_entity and menu_mode == False:
         if hasattr(mouse.hovered_entity, 'block_type') and mouse.hovered_entity.block_type != "bedrock":
             destroy(mouse.hovered_entity)
+            play_sound("miscellaneous/punch.mp3", False)
     elif key.isdigit() and 1 <= int(key) <= len(block_types):
         selected_block_index = int(key) - 1
         update_mini_block()
@@ -232,10 +224,76 @@ def update_mini_block():
 
 generate_terrain()
 
-Text(f"Francesco Maresca's Miner Cave Alpha Version ({version})", position=(-0.65, 0.48), scale=1)
 
-if development_mode:  
-    camera.clip_plane_far = 10
-    Text("(Developer mode)", position=(-0.65, 0.44), scale=1)
+# ---------- Creating the menu interface ----------
+
+playerName = InputField(max_lines=1, default_value=player.name, character_limit=15, active=True)
+
+guiText1 = Text(f"Francesco Maresca's Miner Cave Alpha Version ({version})", position=(-0.65, 0.48), scale=1)
+
+
+def update():
+    if (player.y == plH-12):
+        player.y = plH+2
+        player.x -= 1
+        player.y -= 1
+menu_mode = True  # Defines the state of the game
+if menu_mode == True:
+    logo = Sprite("miscellaneous/logo.png", parent=camera.ui, position=(0,0.25), scale = 0.07)
+    logo.enabled = True
+    player.enabled = False  # Player, when in the menu, not able to play
+    playerName.enabled = True  # Shows the player inputField
+
+def nameAuthentication():
+    player.name = playerName.text
+    print(f"Player name: {player.name}")
+
+
+
+def setMenuMode():
+    global menu_mode  # Use the global menu_mode variable
+    nameAuthentication()
+    logo.enabled = False
+    guiText2 = Text("Player: " + player.name, position=(-0.65, 0.44), scale=1)
+    def update_gui_text():
+        guiText2.text = f"Player: {player.name}"
+    menu_mode = False
+    playerName.enabled = False
+    print("Play")
+    player.enabled = True  # Enable the player to start the game
+    playButton.enabled = False  # Disable the play button after clicking
+    player.position = (0, plH + 2, 0)  # Make sure the player starts in a valid position
+    
+    # Block bar
+    bar_position = Vec3(0, -0.42, 0)
+    block_bar = []
+    num_blocks = len(block_types)
+    bar_width = num_blocks * 0.12
+    start_position_x = -bar_width / 2
+
+    for i, block_type in enumerate(block_types):
+        block_bar.append(Entity(
+            parent=camera.ui,
+            model="quad",
+            texture=block_textures[block_type],
+            scale=(0.1, 0.1),
+            position=(start_position_x + (i * 0.12), bar_position.y),
+            on_click=lambda i=i: update_selected_block(i)  # Fix closure by using i as a default argument
+        ))
+
+
+playButton = Button(
+    parent = camera.ui,
+    #model='rectangle',
+    text_size = 2,
+    position= (0, -0.25),
+    scale = 0.30,
+    text="Play Single Player!",
+    texture= "blocks/Grass.png",
+    #text_color = color.black,
+    on_click = setMenuMode
+)
+
+
 
 game.run()
