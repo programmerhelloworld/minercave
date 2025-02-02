@@ -9,6 +9,7 @@ Miner Cave is an immersive 3D sandbox game built using the **Ursina Engine**. Pl
 ## Features
 
 ### Core Features
+- **Main menu with username insertion**: Starting from Alpha 0.03, Game comes with a menu where you can choose your username.
 - **First-Person Exploration**: Move through the world with an intuitive first-person controller.
 - **Customizable Terrain**: Dynamically generated terrain with Perlin noise, including caves, grasslands, and underground layers.
 - **Block Interaction**: Place and destroy blocks to modify your world in real-time.
