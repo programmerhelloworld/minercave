@@ -36,11 +36,11 @@ Miner Cave is an immersive 3D sandbox game built using the **Ursina Engine**. Pl
 - `numpy`
 - `noise`
 
-# MinerCave Game Instructions
+# Miner Cave Game Instructions
 
 ## Installation
 
-To run **MinerCave**, you need to install the required libraries. Use the following `pip` command:
+To run **Miner Cave**, you need to install the required libraries. Use the following `pip` command:
 
 ```bash
 pip install ursina pygame perlin-noise PyQt5 numpy noise
